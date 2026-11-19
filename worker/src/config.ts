@@ -12,4 +12,8 @@ export const config = {
   jpegQuality: 50,
   // Chromium can't render one screenshot taller than ~16k px, so very long pages are cut.
   maxScreenshotHeight: 15_000,
+
+  openaiApiKey: process.env.OPENAI_API_KEY ?? "",
+  openaiModel: process.env.OPENAI_MODEL ?? "gpt-4o-mini",
+  openaiTimeoutMs: 60_000,
 };

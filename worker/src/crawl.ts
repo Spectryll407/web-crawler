@@ -1,5 +1,6 @@
 import { takeScreenshot } from "./browser";
 import { config } from "./config";
+import { describeScreenshot } from "./describe";
 import { PermanentError } from "./errors";
 import { isDisallowedByRobots } from "./robots";
 
@@ -37,9 +38,13 @@ export async function crawl(url: string): Promise<CrawlResult> {
     config.pageTimeoutMs
   );
 
+  // OpenAI runs after the 30s page budget: that limit is about the page, and the model
+  // has its own timeout.
+  const description = await describeScreenshot(shot.image);
+
   return {
     finalUrl: shot.finalUrl,
-    description: "",
+    description,
     image: shot.image,
     tookMs: Date.now() - started,
     meta: {
