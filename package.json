@@ -4,6 +4,7 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build-frontend": "cd web && yarn && yarn build && cd .. && node scripts/copy-frontend.mjs"
+    "build-frontend": "cd web && yarn && yarn build && cd .. && node scripts/copy-frontend.mjs",
+    "test:e2e": "yarn build-frontend && node --test --test-reporter=spec e2e/crawl.test.mjs"
   }
 }
