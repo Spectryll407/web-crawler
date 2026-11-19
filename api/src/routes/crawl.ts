@@ -2,6 +2,7 @@ import { Router } from "express";
 import { Page } from "../models/page";
 import { normalizeUrl } from "../lib/url";
 import { findOrCreateJob } from "../services/jobs";
+import { publishCrawl } from "../rabbit";
 
 export const crawlRouter = Router();
 
@@ -14,6 +15,24 @@ crawlRouter.post("/crawl", async (req, res, next) => {
     }
 
     const job = await findOrCreateJob(check.url, req.body.url);
+
+    // Only the request that created the job publishes. Reused jobs (in progress or cached)
+    // must not put anything new on the queue.
+    if (job.created) {
+      try {
+        await publishCrawl({ uid: job.uid, url: check.url });
+      } catch (err) {
+        // Don't leave a pending job that no worker will ever see. Free the URL so the
+        // next request can try again.
+        console.error(`publish failed for ${job.uid}: ${(err as Error).message}`);
+        await Page.updateOne(
+          { uid: job.uid },
+          { $set: { status: "error", errorMessage: "queue_unavailable" }, $unset: { activeKey: 1 } }
+        );
+        res.status(503).json({ error: "queue_unavailable" });
+        return;
+      }
+    }
 
     res.status(202).json({ uid: job.uid });
   } catch (err) {

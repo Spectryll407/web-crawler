@@ -1,5 +1,6 @@
 import { config } from "./config";
 import { connectMongo } from "./db";
+import { connectRabbit } from "./rabbit";
 import { createApp } from "./app";
 import { Page } from "./models/page";
 
@@ -9,9 +10,13 @@ async function main() {
     console.log(`api listening on ${config.port}`);
   });
 
-  await connectMongo();
-  await Page.syncIndexes();
-  console.log("mongo indexes ready");
+  await Promise.all([
+    connectMongo().then(async () => {
+      await Page.syncIndexes();
+      console.log("mongo indexes ready");
+    }),
+    connectRabbit(),
+  ]);
 }
 
 main().catch((err) => {
