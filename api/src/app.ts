@@ -1,3 +1,4 @@
+import path from "node:path";
 import express, { ErrorRequestHandler } from "express";
 import { healthRouter } from "./routes/health";
 import { crawlRouter } from "./routes/crawl";
@@ -13,6 +14,8 @@ export function createApp() {
 
   app.use(healthRouter);
   app.use(crawlRouter);
+  // Built Vue app, copied here by `yarn build-frontend`. Resolves to api/public from dist/.
+  app.use(express.static(path.join(__dirname, "..", "public")));
 
   const onError: ErrorRequestHandler = (err, req, res, _next) => {
     if (err?.type === "entity.parse.failed") {

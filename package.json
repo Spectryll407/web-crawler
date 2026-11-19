@@ -2,5 +2,8 @@
   "name": "web-crawler",
   "version": "1.0.0",
   "private": true,
-  "license": "UNLICENSED"
+  "license": "UNLICENSED",
+  "scripts": {
+    "build-frontend": "cd web && yarn && yarn build && cd .. && node scripts/copy-frontend.mjs"
+  }
 }

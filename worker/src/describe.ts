@@ -26,7 +26,9 @@ export async function describeScreenshot(image: Buffer): Promise<string> {
       messages: [
         {
           role: "system",
-          content: "You are a senior UI/UX designer. Start directly with the analysis, no preamble.",
+          content:
+            "You are a senior UI/UX designer. Start directly with the analysis, no preamble. " +
+            "Write plain text, not Markdown: one short title per section on its own line, then a few sentences.",
         },
         {
           role: "user",
