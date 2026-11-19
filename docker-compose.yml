@@ -1,4 +1,39 @@
 services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+      network: host
+    env_file: .env
+    ports:
+      - "8080:8080"
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/healthz"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.worker
+      network: host
+    env_file: .env
+    depends_on:
+      mongo:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+    # Chromium uses /dev/shm heavily; the Docker default of 64MB makes big pages crash.
+    shm_size: "1gb"
+    restart: unless-stopped
+
   mongo:
     image: mongo:7
     ports:
@@ -17,7 +52,8 @@ services:
       - "5672:5672"
       - "15672:15672"
     healthcheck:
-      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      # "ping" passes before the AMQP port is open; this one checks the real listener.
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "check_port_connectivity"]
       interval: 5s
       timeout: 10s
       retries: 20
