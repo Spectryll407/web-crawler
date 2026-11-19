@@ -1,4 +1,7 @@
+import { takeScreenshot } from "./browser";
+import { config } from "./config";
 import { PermanentError } from "./errors";
+import { isDisallowedByRobots } from "./robots";
 
 export type CrawlResult = {
   finalUrl: string;
@@ -12,23 +15,36 @@ export type CrawlResult = {
   };
 };
 
-// Placeholder until the Playwright + OpenAI version lands. FAKE_FAIL lets us exercise
-// the retry and dead-letter paths.
+function withHardTimeout<T>(work: Promise<T>, ms: number): Promise<T> {
+  let timer: NodeJS.Timeout;
+  const timeout = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`timeout: page took longer than ${ms / 1000}s`)), ms);
+  });
+  return Promise.race([work, timeout]).finally(() => clearTimeout(timer));
+}
+
 export async function crawl(url: string): Promise<CrawlResult> {
   const started = Date.now();
-  await new Promise((r) => setTimeout(r, 300));
+  const deadline = started + config.pageTimeoutMs;
 
-  if (process.env.FAKE_FAIL === "temporary") throw new Error("fake temporary failure");
-  if (process.env.FAKE_FAIL === "permanent") throw new PermanentError("fake permanent failure");
+  // The 30s budget covers robots + browser. Playwright's own timeouts use the same
+  // deadline; the race is the last safety net if something hangs anyway.
+  const shot = await withHardTimeout(
+    (async () => {
+      if (await isDisallowedByRobots(url)) throw new PermanentError("disallowed by robots");
+      return takeScreenshot(url, deadline);
+    })(),
+    config.pageTimeoutMs
+  );
 
   return {
-    finalUrl: url,
-    description: "fake description",
-    image: Buffer.from([0xff, 0xd8, 0xff, 0xd9]),
+    finalUrl: shot.finalUrl,
+    description: "",
+    image: shot.image,
     tookMs: Date.now() - started,
     meta: {
-      viewport: { w: 1440, h: 900 },
-      userAgent: "fake",
+      viewport: config.viewport,
+      userAgent: shot.userAgent,
       timestamp: new Date(),
     },
   };

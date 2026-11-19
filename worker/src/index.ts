@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { closeBrowser } from "./browser";
 import { connectMongo } from "./db";
 import { handleMessage } from "./handler";
 import { log } from "./lib/log";
@@ -15,6 +16,7 @@ async function shutdown(signal: string) {
   log.info(`${signal} received, shutting down`);
   try {
     await closeRabbit();
+    await closeBrowser();
     await mongoose.disconnect();
   } finally {
     process.exit(0);
