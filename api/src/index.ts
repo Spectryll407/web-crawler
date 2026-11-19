@@ -1,12 +1,20 @@
-import express from "express";
+import { config } from "./config";
+import { connectMongo } from "./db";
+import { createApp } from "./app";
+import { Page } from "./models/page";
 
-const port = Number(process.env.PORT ?? 8080);
-const app = express();
+async function main() {
+  const app = createApp();
+  app.listen(config.port, () => {
+    console.log(`api listening on ${config.port}`);
+  });
 
-app.get("/healthz", (_req, res) => {
-  res.json({ status: "ok" });
-});
+  await connectMongo();
+  await Page.syncIndexes();
+  console.log("mongo indexes ready");
+}
 
-app.listen(port, () => {
-  console.log(`api listening on ${port}`);
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
 });
