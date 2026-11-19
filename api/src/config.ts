@@ -4,4 +4,5 @@ export const config = {
   rabbitUrl: process.env.RABBIT_URL ?? "amqp://localhost:5672",
   pendingTtlMs: 5 * 60 * 1000,
   cacheTtlMs: 60 * 1000,
+  rateLimitPerMinute: Number(process.env.RATE_LIMIT_PER_MINUTE ?? 10),
 };

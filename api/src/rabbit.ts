@@ -1,5 +1,6 @@
 import amqp, { ChannelModel, ConfirmChannel } from "amqplib";
 import { config } from "./config";
+import { log } from "./lib/log";
 
 export const EXCHANGE = "crawl";
 export const QUEUE = "crawl.requests";
@@ -34,9 +35,9 @@ export async function connectRabbit(): Promise<void> {
       const ch = await conn.createConfirmChannel();
       await assertTopology(ch);
 
-      conn.on("error", (err) => console.error(`rabbit error: ${err.message}`));
+      conn.on("error", (err) => log.error(`rabbit error: ${err.message}`));
       conn.on("close", () => {
-        console.error("rabbit connection closed. Reconnecting");
+        log.error("rabbit connection closed. Reconnecting");
         connection = null;
         channel = null;
         setTimeout(() => void connectRabbit(), 3000);
@@ -44,16 +45,16 @@ export async function connectRabbit(): Promise<void> {
 
       connection = conn;
       channel = ch;
-      console.log("rabbit connected");
+      log.info("rabbit connected");
       return;
     } catch (err) {
-      console.error(`rabbit connect failed: ${(err as Error).message}. Retrying in 3s`);
+      log.error(`rabbit connect failed: ${(err as Error).message}. Retrying in 3s`);
       await new Promise((r) => setTimeout(r, 3000));
     }
   }
 }
 
-export async function publishCrawl(job: { uid: string; url: string }): Promise<void> {
+export async function publishCrawl(job: { uid: string; url: string }, requestId: string): Promise<void> {
   if (!channel) throw new Error("rabbit not connected");
 
   const body = { uid: job.uid, url: job.url, requestedAt: new Date().toISOString() };
@@ -65,7 +66,11 @@ export async function publishCrawl(job: { uid: string; url: string }): Promise<v
       EXCHANGE,
       QUEUE,
       Buffer.from(JSON.stringify(body)),
-      { persistent: true, contentType: "application/json", headers: { "x-retry-count": 0 } },
+      {
+        persistent: true,
+        contentType: "application/json",
+        headers: { "x-retry-count": 0, "x-request-id": requestId },
+      },
       (err) => (err ? reject(err) : resolve())
     );
   });
