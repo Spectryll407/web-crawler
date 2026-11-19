@@ -9,8 +9,12 @@
     "start": "node dist/index.js",
     "dev": "tsx watch src/index.ts"
   },
-  "dependencies": {},
+  "dependencies": {
+    "amqplib": "^0.10.4",
+    "mongoose": "^8.8.0"
+  },
   "devDependencies": {
+    "@types/amqplib": "^0.10.5",
     "@types/node": "^20.17.0",
     "tsx": "^4.19.2",
     "typescript": "^5.6.3"
