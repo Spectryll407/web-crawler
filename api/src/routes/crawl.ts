@@ -1,7 +1,7 @@
 import { Router } from "express";
-import { ulid } from "ulid";
 import { Page } from "../models/page";
 import { normalizeUrl } from "../lib/url";
+import { findOrCreateJob } from "../services/jobs";
 
 export const crawlRouter = Router();
 
@@ -13,14 +13,9 @@ crawlRouter.post("/crawl", async (req, res, next) => {
       return;
     }
 
-    const page = await Page.create({
-      uid: ulid(),
-      url: check.url,
-      requestedUrl: req.body.url,
-      status: "pending",
-    });
+    const job = await findOrCreateJob(check.url, req.body.url);
 
-    res.status(202).json({ uid: page.uid });
+    res.status(202).json({ uid: job.uid });
   } catch (err) {
     next(err);
   }
